@@ -5,7 +5,11 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URL;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -22,15 +26,15 @@ import java.util.stream.Collectors;
 
 public class Main {
 
-    private static final Path PATH =
-            Paths.get("C:\\Users\\Jeka8833\\AppData\\Roaming\\.minecraft\\versions\\version_manifest_v2.json");
+    private static final String MANIFEST_URL = "https://piston-meta.mojang.com/mc/game/version_manifest_v2.json";
 
     private static final Gson GSON = new Gson();
     private static final OkHttpClient client = new OkHttpClient();
     private static final ExecutorService executors = Executors.newWorkStealingPool();
 
     public static void main(String[] args) throws IOException, InterruptedException {
-        VersionManifest versionManifest = GSON.fromJson(Files.readString(PATH), VersionManifest.class);
+        VersionManifest versionManifest = readManifest();
+
         for (final VersionManifest.VersionConfig version : versionManifest.versions) {
             executors.execute(() -> {
                 System.out.println("Requesting: " + version.id + " - " + version.url);
@@ -82,6 +86,13 @@ public class Main {
             } catch (PatternSyntaxException e) {
                 e.printStackTrace();
             }
+        }
+    }
+
+    private static VersionManifest readManifest() throws IOException {
+        URL url = URI.create(MANIFEST_URL).toURL();
+        try (BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(url.openStream()))) {
+            return GSON.fromJson(bufferedReader, VersionManifest.class);
         }
     }
 }
